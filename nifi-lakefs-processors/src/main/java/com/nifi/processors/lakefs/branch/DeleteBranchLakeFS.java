@@ -14,43 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nifi.processors.lakefs;
+package com.nifi.processors.lakefs.branch;
 
+import com.nifi.processors.lakefs.AbstractLakefsProcessor;
+import io.lakefs.clients.sdk.ApiClient;
+import io.lakefs.clients.sdk.ApiException;
+import io.lakefs.clients.sdk.BranchesApi;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.eclipse.jetty.util.security.Password;
 
-import io.lakefs.clients.sdk.ApiClient;
-import io.lakefs.clients.sdk.ApiException;
-import io.lakefs.clients.sdk.Configuration;
-import io.lakefs.clients.sdk.auth.*;
-import io.lakefs.clients.sdk.ActionsApi;
-import io.lakefs.clients.sdk.BranchesApi;
+import java.util.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-@Tags({"lakefs", "versioning"})
+@Tags({"lakefs", "branch", "versioning"})
 @CapabilityDescription("""
                         Delete a lakeFS branch by calling the lakeFS server.
                         """)
@@ -91,7 +75,7 @@ public class DeleteBranchLakeFS extends AbstractLakefsProcessor {
             .build();            
 
     public static final List<PropertyDescriptor> descriptors = Collections.unmodifiableList(
-        Arrays.asList(LAKEFS_URL, USERNAME, PASSWORD, REPOSITORY, BRANCH_NAME, FORCE));
+        Arrays.asList(LAKEFS_SERVICE, REPOSITORY, BRANCH_NAME, FORCE));
     
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
         new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -118,7 +102,7 @@ public class DeleteBranchLakeFS extends AbstractLakefsProcessor {
             return;
         }
 
-        ApiClient apiClient = super.createClient(context);
+        ApiClient apiClient = super.getApiClient(context);
 
         BranchesApi apiInstance = new BranchesApi(apiClient);
         String repository = context.getProperty(REPOSITORY).evaluateAttributeExpressions(flowFile).getValue();

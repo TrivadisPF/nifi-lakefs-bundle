@@ -14,25 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nifi.processors.lakefs;
+package org.apache.nifi.lakefs.service.api;
 
-import org.apache.nifi.util.TestRunner;
-import org.apache.nifi.util.TestRunners;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import io.lakefs.clients.sdk.ApiClient;
+import org.apache.nifi.controller.ControllerService;
+import org.apache.nifi.processor.exception.ProcessException;
 
-public class MyProcessorTest {
-
-    private TestRunner testRunner;
-
-    @BeforeEach
-    public void init() {
-        //testRunner = TestRunners.newTestRunner(ExecuteLakefsAction.class);
-    }
-
-    @Test
-    public void testProcessor() {
-
-    }
-
+/**
+ * LakeFS client api interface to support getting an ApiClient instance used to interact with LakeFS
+ */
+public interface LakeFSApiClientService extends ControllerService {
+    /**
+     * Get a LakeFS client
+     * @return LakeFS client instance
+     * @throws ProcessException process exception in case there is a problem in getting a LakeFS client instance
+     */
+    ApiClient getApiClient();
 }

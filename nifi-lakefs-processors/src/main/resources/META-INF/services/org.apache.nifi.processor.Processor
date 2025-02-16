@@ -12,6 +12,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-com.nifi.processors.lakefs.CreateBranchLakeFS
-com.nifi.processors.lakefs.DeleteBranchLakeFS
-com.nifi.processors.lakefs.CommitLakeFS
+
+com.nifi.processors.lakefs.commit.CommitLakeFS
+com.nifi.processors.lakefs.commit.FetchCommitLakeFS
+com.nifi.processors.lakefs.commit.WaitCommitLakeFS
+
+com.nifi.processors.lakefs.branch.CreateBranchLakeFS
+com.nifi.processors.lakefs.branch.DeleteBranchLakeFS
+com.nifi.processors.lakefs.branch.FetchBranchLakeFS
+# com.nifi.processors.lakefs.branch.ResetBranchLakeFS
+# com.nifi.processors.lakefs.branch.RevertBranchLakeFS
+
+# com.nifi.processors.lakefs.refs.FetchLogCommitsLakeFS
+com.nifi.processors.lakefs.refs.MergeLakeFS
+
+# com.nifi.processors.lakefs.pullrequest.CreatePullRequestLakeFS
+# com.nifi.processors.lakefs.pullrequest.MergePullRequestLakeFS
+
+# com.nifi.processors.lakefs.objects.CopyObjectLakeFS
+# com.nifi.processors.lakefs.objects.DeleteObjectLakeFS
+# com.nifi.processors.lakefs.objects.DeleteObjectLakeFS
+com.nifi.processors.lakefs.objects.FetchObjectLakeFS
+# com.nifi.processors.lakefs.objects.ListObjectLakeFS
+com.nifi.processors.lakefs.objects.PutObjectLakeFS
+
+com.nifi.processors.lakefs.internal.CreateSymlinkFileLakeFS

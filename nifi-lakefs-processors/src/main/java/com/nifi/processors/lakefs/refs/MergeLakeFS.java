@@ -14,80 +14,69 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nifi.processors.lakefs;
+package com.nifi.processors.lakefs.refs;
 
+import com.nifi.processors.lakefs.AbstractLakefsProcessor;
+import io.lakefs.clients.sdk.ApiClient;
+import io.lakefs.clients.sdk.ApiException;
+import io.lakefs.clients.sdk.RefsApi;
+import io.lakefs.clients.sdk.model.Merge;
+import io.lakefs.clients.sdk.model.MergeResult;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.eclipse.jetty.util.security.Password;
 
-import io.lakefs.clients.sdk.ApiClient;
-import io.lakefs.clients.sdk.ApiException;
-import io.lakefs.clients.sdk.Configuration;
-import io.lakefs.clients.sdk.auth.*;
-import io.lakefs.clients.sdk.model.Commit;
-import io.lakefs.clients.sdk.model.CommitCreation;
-import io.lakefs.clients.sdk.ActionsApi;
-import io.lakefs.clients.sdk.BranchesApi;
-import io.lakefs.clients.sdk.CommitsApi;
+import java.util.*;
 
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-@Tags({"lakefs", "versioning"})
+@Tags({"lakefs", "merge", "versioning"})
 @CapabilityDescription("""
                         Merge & commit changes from source branch into destination branch
                         """)
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@DynamicProperty(name = "The name of a Metadata field to add as metadata to the LakeFS commit operation",
+        value = "The value of a Metadata field to add as metadata to the LakeFS commit operation",
+        description = "Allows metadata to be added to the LakeFS commit operation as key/value pairs",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
 public class MergeLakeFS extends AbstractLakefsProcessor {
 
-    public static final PropertyDescriptor BRANCH_NAME = new PropertyDescriptor
+    public static final PropertyDescriptor SOURCE_REF = new PropertyDescriptor
             .Builder()
-            .name("branch-name")
-            .displayName("Branch Name")
-            .description("The name of the branch")
+            .name("source-ref")
+            .displayName("Source Reference")
+            .description("The name of the source reference")
             .required(true)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
-            .build();    
-
-    public static final PropertyDescriptor MESSAGE = new PropertyDescriptor.Builder()
-            .name("commit-message")
-            .displayName("Commit Message")
-            .required(true)
-            .description("The commit message")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
 
-    public static final PropertyDescriptor METADATA_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("IP Address Attribute")
-            .displayName("IP Address Attribute")
+    public static final PropertyDescriptor DESTINATION_BRANCH = new PropertyDescriptor
+            .Builder()
+            .name("destination-branch")
+            .displayName("Destination Branch Name")
+            .description("The name of the destination branch")
             .required(true)
-            .description("The name of an attribute whose value is a dotted decimal IP address for which enrichment should occur")
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
+            .sensitive(false)
+            .build();
+
+    public static final PropertyDescriptor MESSAGE = new PropertyDescriptor.Builder()
+            .name("merge-message")
+            .displayName("Merge Message")
+            .required(false)
+            .description("The merge message")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
@@ -103,7 +92,7 @@ public class MergeLakeFS extends AbstractLakefsProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .defaultValue("false")
-            .build(); 
+            .build();
 
     public static final PropertyDescriptor ALLOW_EMPTY = new PropertyDescriptor.Builder()
             .name("allow-empty")
@@ -114,16 +103,6 @@ public class MergeLakeFS extends AbstractLakefsProcessor {
             .expressionLanguageSupported(ExpressionLanguageScope.NONE)
             .required(true)
             .defaultValue("false")
-            .build();
-
-    public static final PropertyDescriptor SOURCE_METARANGE = new PropertyDescriptor.Builder()
-            .name("source-metarange")
-            .displayName("Source Metarange")
-            .required(false)
-            .description("This tells lakeFS to use the specified metarange as the base for the new commit")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
 
     public static final Relationship REL_SUCCESS = new Relationship.Builder()
@@ -137,7 +116,7 @@ public class MergeLakeFS extends AbstractLakefsProcessor {
             .build();            
 
     public static final List<PropertyDescriptor> descriptors = Collections.unmodifiableList(
-        Arrays.asList(LAKEFS_URL, USERNAME, PASSWORD, REPOSITORY, BRANCH_NAME, MESSAGE, METADATA_ATTRIBUTE, FORCE, ALLOW_EMPTY, SOURCE_METARANGE));
+        Arrays.asList(LAKEFS_SERVICE, REPOSITORY, SOURCE_REF, DESTINATION_BRANCH, MESSAGE, FORCE, ALLOW_EMPTY));
     
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
         new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -176,34 +155,41 @@ public class MergeLakeFS extends AbstractLakefsProcessor {
             return;
         }
 
-        ApiClient apiClient = super.createClient(context);
+        ApiClient apiClient = super.getApiClient(context);
 
-        CommitsApi apiInstance = new CommitsApi(apiClient);
+        RefsApi apiInstance = new RefsApi(apiClient);
         String repository = context.getProperty(REPOSITORY).evaluateAttributeExpressions(flowFile).getValue();
-        String branchName = context.getProperty(BRANCH_NAME).evaluateAttributeExpressions(flowFile).getValue();
+        String sourceRef = context.getProperty(SOURCE_REF).evaluateAttributeExpressions(flowFile).getValue();
+        String destinationBranch = context.getProperty(DESTINATION_BRANCH).evaluateAttributeExpressions(flowFile).getValue();
         String message = context.getProperty(MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
         boolean force = context.getProperty(FORCE).asBoolean();
         boolean allowEmpty = context.getProperty(ALLOW_EMPTY).asBoolean();
-        String sourceMetarange = context.getProperty(SOURCE_METARANGE).evaluateAttributeExpressions(flowFile).getValue();
 
-        CommitCreation commitCreation = new CommitCreation(); // CommitCreation | 
-        commitCreation.setMessage(message);
-        commitCreation.setMetadata(null);
-        commitCreation.setDate(Instant.now().getEpochSecond());
-        commitCreation.setAllowEmpty(allowEmpty);
-        commitCreation.setForce(force);
+        // create a metadata map from the dynamic properties added on the Properties tab
+        final Map<String, String> metadata = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            if (entry.getKey().isDynamic() && !StringUtils.isEmpty(entry.getValue())) {
+                metadata.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+        }
+
+        Merge merge = new Merge(); // Merge |
+        merge.setMessage(message);
+        merge.setMetadata(metadata);
+        merge.setAllowEmpty(allowEmpty);
+        merge.setForce(force);
         try {
-            Commit result = apiInstance.commit(repository, branchName, commitCreation)
-                .sourceMetarange(sourceMetarange)
+            MergeResult result = apiInstance.mergeIntoBranch(repository, sourceRef, destinationBranch)
+                .merge(merge)
                 .execute();
             System.out.println(result);
         } catch (ApiException e) {
-            System.err.println("Exception when calling BranchesApi#createBranch");
+            System.err.println("Exception when calling RefsApi#mergeIntoBranch");
             System.err.println("Status code: " + e.getCode());
             System.err.println("Reason: " + e.getResponseBody());
             System.err.println("Response headers: " + e.getResponseHeaders());
 
-            getLogger().error("Failed to delete branch '{}' in repository {} due to {}", new Object[]{branchName, repository, e.getResponseBody()});
+            getLogger().error("Failed to merge into branch '{}' from source ref {} due to {}", new Object[]{destinationBranch, sourceRef, e.getResponseBody()});
             flowFile = session.penalize(flowFile);
             session.transfer(flowFile, REL_FAILURE);
         }

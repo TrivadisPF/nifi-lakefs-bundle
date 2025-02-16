@@ -22,39 +22,19 @@
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>nifi-lakefs-processors</artifactId>
+    <artifactId>nifi-lakefs-service-api</artifactId>
     <packaging>jar</packaging>
 
     <dependencies>
-        <!-- provided dependency so we can compile against the service API -->
         <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-lakefs-service-api</artifactId>
-            <version>1.0.0</version>
-            <scope>provided</scope>
+            <groupId>io.lakefs</groupId>
+            <artifactId>sdk</artifactId>
+            <version>${lakefs.version}</version> 
         </dependency>
-        <!-- normal dependencies -->
         <dependency>
             <groupId>org.apache.nifi</groupId>
             <artifactId>nifi-api</artifactId>
         </dependency>
-        <!-- Lakefs Java client -->
-        <dependency>
-            <groupId>io.lakefs</groupId>
-            <artifactId>sdk</artifactId> 
-            <version>${lakefs.version}</version> 
-        </dependency> 
-        <!-- test dependencies -->
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-lakefs-service</artifactId>
-            <version>1.0.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.nifi</groupId>
-            <artifactId>nifi-mock</artifactId>
-            <scope>test</scope>
-        </dependency>
+
     </dependencies>
 </project>

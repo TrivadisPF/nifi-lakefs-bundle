@@ -14,52 +14,45 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.nifi.processors.lakefs;
+package com.nifi.processors.lakefs.commit;
 
+import com.nifi.processors.lakefs.AbstractLakefsProcessor;
+import com.nifi.processors.lakefs.branch.CreateBranchLakeFS;
+import com.nifi.processors.lakefs.refs.MergeLakeFS;
+import io.lakefs.clients.sdk.ApiClient;
+import io.lakefs.clients.sdk.ApiException;
+import io.lakefs.clients.sdk.CommitsApi;
+import io.lakefs.clients.sdk.model.Commit;
+import io.lakefs.clients.sdk.model.CommitCreation;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.nifi.annotation.behavior.DynamicProperty;
+import org.apache.nifi.annotation.behavior.InputRequirement;
+import org.apache.nifi.annotation.documentation.CapabilityDescription;
+import org.apache.nifi.annotation.documentation.SeeAlso;
+import org.apache.nifi.annotation.documentation.Tags;
+import org.apache.nifi.annotation.lifecycle.OnScheduled;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.expression.AttributeExpression;
 import org.apache.nifi.expression.ExpressionLanguageScope;
 import org.apache.nifi.flowfile.FlowFile;
-import org.apache.nifi.annotation.behavior.InputRequirement;
-import org.apache.nifi.annotation.behavior.ReadsAttribute;
-import org.apache.nifi.annotation.behavior.ReadsAttributes;
-import org.apache.nifi.annotation.behavior.WritesAttribute;
-import org.apache.nifi.annotation.behavior.WritesAttributes;
-import org.apache.nifi.annotation.lifecycle.OnScheduled;
-import org.apache.nifi.annotation.documentation.CapabilityDescription;
-import org.apache.nifi.annotation.documentation.SeeAlso;
-import org.apache.nifi.annotation.documentation.Tags;
-import org.apache.nifi.processor.AbstractProcessor;
 import org.apache.nifi.processor.ProcessContext;
 import org.apache.nifi.processor.ProcessSession;
-import org.apache.nifi.processor.ProcessorInitializationContext;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
-import org.eclipse.jetty.util.security.Password;
-
-import io.lakefs.clients.sdk.ApiClient;
-import io.lakefs.clients.sdk.ApiException;
-import io.lakefs.clients.sdk.Configuration;
-import io.lakefs.clients.sdk.auth.*;
-import io.lakefs.clients.sdk.model.Commit;
-import io.lakefs.clients.sdk.model.CommitCreation;
-import io.lakefs.clients.sdk.ActionsApi;
-import io.lakefs.clients.sdk.BranchesApi;
-import io.lakefs.clients.sdk.CommitsApi;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
-@Tags({"lakefs", "versioning"})
+@Tags({"lakefs", "commit", "versioning"})
 @CapabilityDescription("""
                         Commit changes to a lakeFS branch. 
                         """)
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
+@DynamicProperty(name = "The name of a Metadata field to add as metadata to the LakeFS commit operation",
+        value = "The value of a Metadata field to add as metadata to the LakeFS commit operation",
+        description = "Allows metadata to be added to the LakeFS commit operation as key/value pairs",
+        expressionLanguageScope = ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+@SeeAlso({ WaitCommitLakeFS.class, MergeLakeFS.class, CreateBranchLakeFS.class })
 public class CommitLakeFS extends AbstractLakefsProcessor {
 
     public static final PropertyDescriptor BRANCH_NAME = new PropertyDescriptor
@@ -76,7 +69,7 @@ public class CommitLakeFS extends AbstractLakefsProcessor {
     public static final PropertyDescriptor MESSAGE = new PropertyDescriptor.Builder()
             .name("commit-message")
             .displayName("Commit Message")
-            .required(true)
+            .required(false)
             .description("The commit message")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
@@ -86,11 +79,20 @@ public class CommitLakeFS extends AbstractLakefsProcessor {
     public static final PropertyDescriptor METADATA_ATTRIBUTE = new PropertyDescriptor.Builder()
             .name("metadata-attribute")
             .displayName("Additional Metadata")
-            .required(true)
+            .required(false)
             .description("Additional metadata to the commit.")
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
             .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
+            .build();
+
+    public static final PropertyDescriptor COMMIT_DATE = new PropertyDescriptor.Builder()
+            .name("date")
+            .displayName("Date of Commit")
+            .description("The commit creation in Unix timestamp seconds format.")
+            .addValidator(StandardValidators.POSITIVE_LONG_VALIDATOR)
+            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
+            .required(false)
             .build();
 
     public static final PropertyDescriptor FORCE = new PropertyDescriptor.Builder()
@@ -137,7 +139,7 @@ public class CommitLakeFS extends AbstractLakefsProcessor {
             .build();            
 
     public static final List<PropertyDescriptor> descriptors = Collections.unmodifiableList(
-        Arrays.asList(LAKEFS_URL, USERNAME, PASSWORD, REPOSITORY, BRANCH_NAME, MESSAGE, METADATA_ATTRIBUTE, FORCE, ALLOW_EMPTY, SOURCE_METARANGE));
+        Arrays.asList(LAKEFS_SERVICE, REPOSITORY, BRANCH_NAME, MESSAGE, METADATA_ATTRIBUTE, FORCE, ALLOW_EMPTY, SOURCE_METARANGE));
     
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
         new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -176,20 +178,32 @@ public class CommitLakeFS extends AbstractLakefsProcessor {
             return;
         }
 
-        ApiClient apiClient = super.createClient(context);
+        ApiClient apiClient = super.getApiClient(context);
 
         CommitsApi apiInstance = new CommitsApi(apiClient);
         String repository = context.getProperty(REPOSITORY).evaluateAttributeExpressions(flowFile).getValue();
         String branchName = context.getProperty(BRANCH_NAME).evaluateAttributeExpressions(flowFile).getValue();
         String message = context.getProperty(MESSAGE).evaluateAttributeExpressions(flowFile).getValue();
+        long commitDate = Instant.now().getEpochSecond();
+        if (context.getProperty(COMMIT_DATE).isSet()) {
+            commitDate = context.getProperty(COMMIT_DATE).evaluateAttributeExpressions().asLong();
+        }
         boolean force = context.getProperty(FORCE).asBoolean();
         boolean allowEmpty = context.getProperty(ALLOW_EMPTY).asBoolean();
         String sourceMetarange = context.getProperty(SOURCE_METARANGE).evaluateAttributeExpressions(flowFile).getValue();
 
+        // create a metadata map from the dynamic properties added on the Properties tab
+        final Map<String, String> metadata = new HashMap<>();
+        for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
+            if (entry.getKey().isDynamic() && !StringUtils.isEmpty(entry.getValue())) {
+                metadata.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+        }
+
         CommitCreation commitCreation = new CommitCreation(); // CommitCreation | 
         commitCreation.setMessage(message);
-        commitCreation.setMetadata(null);
-        commitCreation.setDate(Instant.now().getEpochSecond());
+        commitCreation.setMetadata(metadata);
+        commitCreation.setDate(commitDate);
         commitCreation.setAllowEmpty(allowEmpty);
         commitCreation.setForce(force);
         try {
