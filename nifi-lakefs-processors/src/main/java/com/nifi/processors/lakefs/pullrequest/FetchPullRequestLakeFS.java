@@ -19,9 +19,10 @@ package com.nifi.processors.lakefs.pullrequest;
 import com.nifi.processors.lakefs.AbstractLakefsProcessor;
 import com.nifi.processors.lakefs.branch.CreateBranchLakeFS;
 import com.nifi.processors.lakefs.branch.DeleteBranchLakeFS;
-import io.lakefs.clients.sdk.*;
+import io.lakefs.clients.sdk.ApiClient;
+import io.lakefs.clients.sdk.ApiException;
+import io.lakefs.clients.sdk.ExperimentalApi;
 import io.lakefs.clients.sdk.model.PullRequest;
-import io.lakefs.clients.sdk.model.Ref;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.WritesAttribute;
 import org.apache.nifi.annotation.behavior.WritesAttributes;
@@ -37,10 +38,7 @@ import org.apache.nifi.processor.ProcessSession;
 import org.apache.nifi.processor.Relationship;
 import org.apache.nifi.processor.util.StandardValidators;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
