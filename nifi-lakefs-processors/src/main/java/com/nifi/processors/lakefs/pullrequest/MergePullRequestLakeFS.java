@@ -21,8 +21,6 @@ import io.lakefs.clients.sdk.ApiClient;
 import io.lakefs.clients.sdk.ApiException;
 import io.lakefs.clients.sdk.ExperimentalApi;
 import io.lakefs.clients.sdk.model.MergeResult;
-import io.lakefs.clients.sdk.model.PullRequestCreation;
-import io.lakefs.clients.sdk.model.PullRequestCreationResponse;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.documentation.CapabilityDescription;
 import org.apache.nifi.annotation.documentation.Tags;

@@ -76,16 +76,6 @@ public class CommitLakeFS extends AbstractLakefsProcessor {
             .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
             .build();
 
-    public static final PropertyDescriptor METADATA_ATTRIBUTE = new PropertyDescriptor.Builder()
-            .name("metadata-attribute")
-            .displayName("Additional Metadata")
-            .required(false)
-            .description("Additional metadata to the commit.")
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .addValidator(StandardValidators.createAttributeExpressionLanguageValidator(AttributeExpression.ResultType.STRING))
-            .build();
-
     public static final PropertyDescriptor COMMIT_DATE = new PropertyDescriptor.Builder()
             .name("date")
             .displayName("Date of Commit")
@@ -139,7 +129,7 @@ public class CommitLakeFS extends AbstractLakefsProcessor {
             .build();            
 
     public static final List<PropertyDescriptor> descriptors = Collections.unmodifiableList(
-        Arrays.asList(LAKEFS_SERVICE, REPOSITORY, BRANCH_NAME, MESSAGE, METADATA_ATTRIBUTE, FORCE, ALLOW_EMPTY, SOURCE_METARANGE));
+        Arrays.asList(LAKEFS_SERVICE, REPOSITORY, BRANCH_NAME, MESSAGE, FORCE, ALLOW_EMPTY, SOURCE_METARANGE));
     
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
         new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));
@@ -196,7 +186,7 @@ public class CommitLakeFS extends AbstractLakefsProcessor {
         final Map<String, String> metadata = new HashMap<>();
         for (final Map.Entry<PropertyDescriptor, String> entry : context.getProperties().entrySet()) {
             if (entry.getKey().isDynamic() && !StringUtils.isEmpty(entry.getValue())) {
-                metadata.put(String.valueOf(entry.getKey()), entry.getValue());
+                metadata.put(String.valueOf(entry.getKey().getName()), entry.getValue());
             }
         }
 

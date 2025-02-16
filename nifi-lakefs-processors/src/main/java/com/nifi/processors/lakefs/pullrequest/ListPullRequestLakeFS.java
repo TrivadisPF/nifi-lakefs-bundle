@@ -17,9 +17,11 @@
 package com.nifi.processors.lakefs.pullrequest;
 
 import com.nifi.processors.lakefs.AbstractLakefsProcessor;
-import io.lakefs.clients.sdk.*;
+import io.lakefs.clients.sdk.ApiClient;
+import io.lakefs.clients.sdk.ApiException;
+import io.lakefs.clients.sdk.ExperimentalApi;
+import io.lakefs.clients.sdk.ObjectsApi;
 import io.lakefs.clients.sdk.model.PullRequestsList;
-import io.lakefs.clients.sdk.model.RefList;
 import org.apache.nifi.annotation.behavior.InputRequirement;
 import org.apache.nifi.annotation.behavior.PrimaryNodeOnly;
 import org.apache.nifi.annotation.behavior.TriggerSerially;
