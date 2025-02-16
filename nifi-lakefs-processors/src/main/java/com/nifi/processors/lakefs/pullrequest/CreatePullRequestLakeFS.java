@@ -63,7 +63,6 @@ public class CreatePullRequestLakeFS extends AbstractLakefsProcessor {
             .description("The description for the pull request")
             .required(false)
             .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
             .sensitive(false)
             .build();
 

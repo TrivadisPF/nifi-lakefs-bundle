@@ -44,17 +44,6 @@ import java.util.*;
 @InputRequirement(InputRequirement.Requirement.INPUT_ALLOWED)
 public class MergePullRequestLakeFS extends AbstractLakefsProcessor {
 
-    public static final PropertyDescriptor TITLE = new PropertyDescriptor
-            .Builder()
-            .name("title")
-            .displayName("Title")
-            .description("The title for the pull request")
-            .required(true)
-            .expressionLanguageSupported(ExpressionLanguageScope.FLOWFILE_ATTRIBUTES)
-            .addValidator(StandardValidators.NON_EMPTY_VALIDATOR)
-            .sensitive(false)
-            .build();
-
     public static final PropertyDescriptor PULL_REQUEST_ID = new PropertyDescriptor
             .Builder()
             .name("pull-request-id")
@@ -77,7 +66,7 @@ public class MergePullRequestLakeFS extends AbstractLakefsProcessor {
             .build();            
 
     public static final List<PropertyDescriptor> descriptors = Collections.unmodifiableList(
-        Arrays.asList(LAKEFS_SERVICE, REPOSITORY, TITLE, PULL_REQUEST_ID));
+        Arrays.asList(LAKEFS_SERVICE, REPOSITORY, PULL_REQUEST_ID));
     
     public static final Set<Relationship> relationships = Collections.unmodifiableSet(
         new HashSet<>(Arrays.asList(REL_SUCCESS, REL_FAILURE)));

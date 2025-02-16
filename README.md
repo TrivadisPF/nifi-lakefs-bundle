@@ -53,10 +53,11 @@ For more information see the [official lakeFS documentation](https://docs.lakefs
 
 | LakeFS API | Description | NiFI Processor |Status |
 |------------|:-------:	|-------	|---- |
-| `createPullRequest` | creates a pull request | `CreatePullRequestLakeFS` | |
-| `getPullRequest` | get details for a pull reqeust | n.a. | |
-| `mergePullRequest` | merges a pull request | `MergePullRequestLakeFS` | |
-| `listPullRequests` | list pull requests | n.a. | |
+| `createPullRequest` | creates a pull request | `CreatePullRequestLakeFS` | implemented |
+| `mergePullRequest` | merges a pull request | `MergePullRequestLakeFS` | implemented |
+| `getPullRequest` | get details for a pull reqeust | `FetchPullRequestLakeFS` | |
+| `updatePullRequest` | update pull reqeust | n.a. | |
+| `listPullRequests` | list pull requests | `ListPullRequestLakeFS` | implemented |
 
 ### Objects API
 
