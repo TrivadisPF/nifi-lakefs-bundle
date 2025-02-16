@@ -34,20 +34,20 @@ For more information see the [official lakeFS documentation](https://docs.lakefs
 |------------|:-------:	|-------	|---- |
 | `listBranches `	| list branches | `ListBranchLakeFS` <br>(similar to ListFile - returns first all branches and then only new ones) | implemented |
 | `createBranch ` | create branch | `CreateBranchLakeFS` | implemented |
-| `cherryPick ` | cherry-pick a ref | n.a. | |
 | `deleteBranch ` | deletes a branch  | `DeleteBranchLakeFS` | implemented |
-| `diffBranch ` | get diff for a branch | n.a. | |
 | `getBranch ` | get branch details| `FetchBranchLakeFS`<br>(returns branch details as NiFi attributes) | implemented |
-| `resetBranch ` | reset changes on a branch | `ResetBranchLakeFS` | |
-| `revertBranch ` | revert commit for branch | `RevertBranchLakeFS` | |
+| `resetBranch ` | reset changes on a branch | n.a. | |
+| `revertBranch ` | revert commit for branch | n.a. | |
+| `cherryPick ` | cherry-pick a ref | n.a. | |
+| `diffBranch ` | get diff for a branch | n.a. | |
 
 ### Refs API
 
 | LakeFS API | Descritption | NiFI Processor |Status |
 |------------|:-------:	|-------	|---- |
-| `diffRefs` | diff two refs | n.a. | |
-| `log_commits` | get commit log from ref | `FetchLogCommitsLakeFS` | |
 | `mergeIntoBranch` | merge references  | `MergeLakeFS` | implemented |
+| `log_commits` | get commit log from ref | `FetchLogCommitsLakeFS` | |
+| `diffRefs` | diff two refs | n.a. | |
 
 ### Pull Request API
 
@@ -55,9 +55,9 @@ For more information see the [official lakeFS documentation](https://docs.lakefs
 |------------|:-------:	|-------	|---- |
 | `createPullRequest` | creates a pull request | `CreatePullRequestLakeFS` | implemented |
 | `mergePullRequest` | merges a pull request | `MergePullRequestLakeFS` | implemented |
-| `getPullRequest` | get details for a pull reqeust | `FetchPullRequestLakeFS` | |
-| `updatePullRequest` | update pull reqeust | n.a. | |
+| `getPullRequest` | get details for a pull reqeust | `FetchPullRequestLakeFS` | implemented |
 | `listPullRequests` | list pull requests | `ListPullRequestLakeFS` | implemented |
+| `updatePullRequest` | update pull reqeust | n.a. | |
 
 ### Objects API
 
@@ -67,11 +67,11 @@ For more information see the [official lakeFS documentation](https://docs.lakefs
 | `deleteObject`	| delete an object  given a path relative to branch/ref | `DeleteObjectLakeFS` | |
 | `deleteObjects`	| delete objects given a list of paths relative to branch/ref | `DeleteObjectLakeFS` | |
 | `getObject`	| get an object at a path relative to branch/ref | `FetchObjectLakeFS` | implemented |
-| `getUnderlyingProperties`	| get an object's storage class properties at a path relative to branch/ref. |n.a. | |
-| `headObject`	| get object's existence at a path relative to branch/ref | n.a. | |
 | `listObjects`	| list objects and its metadata at given ref prefix | `ListObjectLakeFS`<br> (similar to ListFile) | |
-| `statObject	`| fetch object's metadata at given ref prefix | n.a. | |
 | `uploadObject`	| upload object at given path for ref prefix | `PutObjectLakeFS` | implemented |
+| `statObject	`| fetch object's metadata at given ref prefix | n.a. | |
+| `getUnderlyingProperties`	| get an object's storage class properties at a path relative to branch/ref. | n.a. | |
+| `headObject`	| get object's existence at a path relative to branch/ref | n.a. | |
 
 ### Internal API
 

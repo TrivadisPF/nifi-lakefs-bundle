@@ -20,14 +20,17 @@ com.nifi.processors.lakefs.commit.WaitCommitLakeFS
 com.nifi.processors.lakefs.branch.CreateBranchLakeFS
 com.nifi.processors.lakefs.branch.DeleteBranchLakeFS
 com.nifi.processors.lakefs.branch.FetchBranchLakeFS
+com.nifi.processors.lakefs.branch.ListBranchLakeFS
 # com.nifi.processors.lakefs.branch.ResetBranchLakeFS
 # com.nifi.processors.lakefs.branch.RevertBranchLakeFS
 
 # com.nifi.processors.lakefs.refs.FetchLogCommitsLakeFS
 com.nifi.processors.lakefs.refs.MergeLakeFS
 
-# com.nifi.processors.lakefs.pullrequest.CreatePullRequestLakeFS
-# com.nifi.processors.lakefs.pullrequest.MergePullRequestLakeFS
+com.nifi.processors.lakefs.pullrequest.CreatePullRequestLakeFS
+com.nifi.processors.lakefs.pullrequest.FetchPullRequestLakeFS
+com.nifi.processors.lakefs.pullrequest.ListPullRequestLakeFS
+com.nifi.processors.lakefs.pullrequest.MergePullRequestLakeFS
 
 # com.nifi.processors.lakefs.objects.CopyObjectLakeFS
 # com.nifi.processors.lakefs.objects.DeleteObjectLakeFS
